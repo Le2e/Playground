@@ -16,12 +16,12 @@ class LoginViewModel : ViewModel() {
 
     val loginEvent: LiveData<ViewResult<Any>> get() = _loginEvent
 
-    fun loginUserNoCache(username: String, password: String) {
+    fun loginUser(username: String, password: String) {
         if (invalidCredentials(username, password)) {
             return
         }
 
-        authRepo.authUserObs(username, passwgord)
+        authRepo.authUserObs(username, password)
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe({
