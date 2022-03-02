@@ -2,6 +2,10 @@ package com.upr.mvvmsample.business.domain.feature.user
 
 import com.upr.mvvmsample.business.domain.util.StringUtils
 
+/**
+ * Responsibility: ?
+ * Reason to change: ?
+ */
 object UserDataValidation {
     private const val USERNAME_MAX_LENGTH = 20
     private const val USERNAME_MIN_LENGTH = 5
