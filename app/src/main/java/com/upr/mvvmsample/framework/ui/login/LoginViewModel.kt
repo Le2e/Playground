@@ -5,7 +5,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.upr.mvvmsample.business.data.RepoResult
 import com.upr.mvvmsample.business.data.user.IAuthRepo
-import com.upr.mvvmsample.business.domain.feature.user.UserDataValidation
+import com.upr.mvvmsample.business.domain.feature.user.validation.*
 import com.upr.mvvmsample.framework.data.user.AuthRepo
 import com.upr.mvvmsample.framework.data.user.local.AuthLocal
 import com.upr.mvvmsample.framework.data.user.remote.AuthRemote
@@ -24,18 +24,23 @@ import io.reactivex.rxjava3.schedulers.Schedulers
  *      - post success when session token is pulled and cached successfully
  */
 class LoginViewModel : ViewModel() {
-    private val _loginEvent: MutableLiveData<ViewResult<Any>> = MutableLiveData()
-
+    // DI to unit test these - need to handle rx schedulers correctly for unit testing as well
+    private val userValidation: IUserDataValidation = UserDataValidation()
     private val authRepo: IAuthRepo = AuthRepo(
         AuthRemote(),
         AuthLocal()
     )
 
+    private val _loginEvent: MutableLiveData<ViewResult<Any>> = MutableLiveData()
     val loginEvent: LiveData<ViewResult<Any>> get() = _loginEvent
 
     fun loginUser(username: String, password: String) {
-        if (invalidCredentials(username, password)) {
-            return
+        when (val result = runFieldValidation(username, password)) {
+            is UserValidationResult.Valid -> {}
+            is UserValidationResult.Invalid -> {
+                publishError(Throwable(result.reason))
+                return
+            }
         }
 
         authRepo.authUserObs(username, password)
@@ -51,16 +56,11 @@ class LoginViewModel : ViewModel() {
             })
     }
 
-    private fun invalidCredentials(username: String, password: String): Boolean {
-        return try {
-            UserDataValidation.isValidUsername(username)
-            UserDataValidation.isValidPassword(password)
-            false
-        } catch (ex: Exception) {
-            publishError(ex)
-
-            true
-        }
+    private fun runFieldValidation(username: String, password: String): UserValidationResult {
+        return userValidation.validateUserFields(
+            UsernameValidationRule(username),
+            UserPasswordValidationRule(password)
+        )
     }
 
     private fun publishError(throwable: Throwable) {
